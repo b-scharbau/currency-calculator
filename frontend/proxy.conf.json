@@ -1,0 +1,5 @@
+{
+  "/currencies": { "target": "http://localhost:8080", "secure": false },
+  "/currency": { "target": "http://localhost:8080", "secure": false },
+  "/convert": { "target": "http://localhost:8080", "secure": false }
+}

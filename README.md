@@ -12,12 +12,13 @@ A small Spring Boot app for converting between currencies, using live rates from
   pair don't re-hit the external API
 - Frankfurter API calls have connect/read timeouts and retry on transient failures
   (timeouts, connection errors, 5xx responses)
-- A simple web page for converting currencies, with a live powers-of-ten reference table
+- An Angular frontend for converting currencies, with a live powers-of-ten reference table
 
 ## Requirements
 
 - Java 21
 - A PostgreSQL database (no local Maven install needed — use the bundled `./mvnw` wrapper)
+- No local Node/npm/Angular CLI needed — the Maven build installs its own (see Frontend below)
 
 ## Database setup
 
@@ -40,7 +41,33 @@ variables; see `src/main/resources/application.properties` for defaults.
 ./mvnw spring-boot:run
 ```
 
-The app starts on `http://localhost:8080`.
+The app starts on `http://localhost:8080`. This also builds the Angular frontend (see below) —
+first run will take longer while it downloads Node and npm packages.
+
+## Frontend
+
+The UI lives in `frontend/`, a standalone Angular 20 app (standalone components, Signals) that
+talks to the REST API below. `./mvnw spring-boot:run` / `package` build it automatically via
+`frontend-maven-plugin`, which downloads its own pinned Node/npm — nothing needs to be
+preinstalled, and the compiled output lands directly in `target/classes/static` (never committed
+to source control).
+
+For backend-only iteration, skip the frontend build:
+
+```sh
+./mvnw spring-boot:run -Dfrontend.skip=true
+```
+
+For frontend-only iteration with live reload against a running backend:
+
+```sh
+cd frontend
+npm install
+npm start   # ng serve, proxying /currencies, /currency, /convert to localhost:8080
+```
+
+This needs a local Node matching `frontend/.nvmrc` (use nvm/volta, or `frontend/node/` if you've
+already run a Maven build once, since frontend-maven-plugin leaves its downloaded Node there).
 
 ## Testing
 
@@ -58,6 +85,13 @@ overrides the main datasource config for the test classpath.
 
 ```sh
 ./mvnw test
+```
+
+Angular's own unit tests (`frontend/src/**/*.spec.ts`) run separately, headless via Chrome:
+
+```sh
+cd frontend
+CHROME_BIN=$(which chromium || which google-chrome) npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
 ## API

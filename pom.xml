@@ -28,6 +28,7 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <frontend.skip>false</frontend.skip>
     </properties>
     <dependencies>
         <dependency>
@@ -74,6 +75,59 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!--
+                Builds the Angular frontend (frontend/) and drops its compiled output directly into
+                target/classes/static, before Spring Boot's own resource copying runs (generate-resources
+                precedes process-resources in Maven's lifecycle). frontend/angular.json's outputPath is
+                configured to write there directly, so nothing further copies/moves the build output.
+                Node/npm are self-installed by this plugin (frontend/.node), independent of any system
+                Node — a fresh clone needs nothing but this Maven build to produce a working app.
+                Pass -Dfrontend.skip=true to skip all three executions for backend-only iteration.
+            -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>2.0.2</version>
+                <configuration>
+                    <workingDirectory>${project.basedir}/frontend</workingDirectory>
+                    <installDirectory>${project.basedir}/frontend</installDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>v22.23.2</nodeVersion>
+                            <skip>${frontend.skip}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>install</arguments>
+                            <skip>${frontend.skip}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>run build</arguments>
+                            <skip>${frontend.skip}</skip>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
