@@ -44,6 +44,18 @@ The app starts on `http://localhost:8080`.
 
 ## Testing
 
+Tests run against a separate database, so they don't disturb the dev database's data:
+
+```sql
+CREATE DATABASE currency_calculator_test;
+CREATE USER currency_test WITH PASSWORD 'currency_test';
+GRANT ALL PRIVILEGES ON DATABASE currency_calculator_test TO currency_test;
+ALTER DATABASE currency_calculator_test OWNER TO currency_test;
+```
+
+These credentials are hardcoded in `src/test/resources/application.properties`, which
+overrides the main datasource config for the test classpath.
+
 ```sh
 ./mvnw test
 ```
