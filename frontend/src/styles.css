@@ -99,16 +99,34 @@ h1.headline {
 }
 
 section { padding: 32px 0; }
-section.tinted { background: var(--tint); }
 .section-head { margin-bottom: 24px; }
 .section-head h2 { font-size: 20px; margin-bottom: 6px; }
 .section-head .desc { color: var(--muted); font-size: 14px; }
 
-.panel {
+.wrap-wide {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+.two-col {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+}
+.two-col > * {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.panel, .reference-panel {
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: 4px;
     padding: 28px;
+}
+.reference-panel {
+    background: var(--tint);
 }
 label {
     display: block;

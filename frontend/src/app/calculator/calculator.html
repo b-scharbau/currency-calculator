@@ -1,85 +1,85 @@
 <section id="calculator">
-    <div class="wrap">
-        <div class="panel">
-            <form (submit)="onSubmit($event)">
-                <div class="field">
-                    <label for="amount">Amount</label>
-                    <input type="number" id="amount" [value]="amount()" (input)="onAmountInput($event)" min="0" step="any" required>
-                </div>
-
-                <div class="fields-row">
+    <div class="wrap-wide">
+        <div class="two-col">
+            <div class="panel">
+                <form (submit)="onSubmit($event)">
                     <div class="field">
-                        <label for="from">From</label>
-                        <select id="from" [value]="from()" (change)="onFromChange($event)" required>
-                            @for (currency of currencies(); track currency.code) {
-                                <option [value]="currency.code">{{ currency.code }} &mdash; {{ currency.name }}</option>
+                        <label for="amount">Amount</label>
+                        <input type="number" id="amount" [value]="amount()" (input)="onAmountInput($event)" min="0" step="any" required>
+                    </div>
+
+                    <div class="fields-row">
+                        <div class="field">
+                            <label for="from">From</label>
+                            <select id="from" [value]="from()" (change)="onFromChange($event)" required>
+                                @for (currency of currencies(); track currency.code) {
+                                    <option [value]="currency.code">{{ currency.code }} &mdash; {{ currency.name }}</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="button" class="swap-btn" (click)="onSwap()" title="Swap currencies" aria-label="Swap currencies">&#8646;</button>
+                        <div class="field">
+                            <label for="to">To</label>
+                            <select id="to" [value]="to()" (change)="onToChange($event)" required>
+                                @for (currency of currencies(); track currency.code) {
+                                    <option [value]="currency.code">{{ currency.code }} &mdash; {{ currency.name }}</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit">Convert</button>
+                </form>
+
+                @if (errorMessage(); as message) {
+                    <div class="meta-strip error">
+                        <div class="meta-item">
+                            <span class="k">Error</span>
+                            <span class="v">{{ message }}</span>
+                        </div>
+                    </div>
+                } @else if (conversion(); as result) {
+                    <div class="meta-strip">
+                        <div class="meta-item">
+                            <span class="k">Result</span>
+                            <span class="v">{{ result.resultLabel }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="k">Rate</span>
+                            <span class="v">{{ result.rateLabel }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="k">As of</span>
+                            <span class="v">{{ result.date }}</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="reference-panel" id="reference">
+                <div class="section-head">
+                    <h2>Powers of ten</h2>
+                    <p class="desc">Quick reference for the current pair, using live rates for the "from" currency.</p>
+                </div>
+                @if (powersOfTen(); as table) {
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>{{ table.from }}</th>
+                                <th>{{ table.to }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (row of table.rows; track row.powerLabel) {
+                                <tr>
+                                    <td>{{ row.powerLabel }}</td>
+                                    <td>{{ row.convertedLabel }}</td>
+                                </tr>
                             }
-                        </select>
-                    </div>
-                    <button type="button" class="swap-btn" (click)="onSwap()" title="Swap currencies" aria-label="Swap currencies">&#8646;</button>
-                    <div class="field">
-                        <label for="to">To</label>
-                        <select id="to" [value]="to()" (change)="onToChange($event)" required>
-                            @for (currency of currencies(); track currency.code) {
-                                <option [value]="currency.code">{{ currency.code }} &mdash; {{ currency.name }}</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-
-                <button type="submit">Convert</button>
-            </form>
-
-            @if (errorMessage(); as message) {
-                <div class="meta-strip error">
-                    <div class="meta-item">
-                        <span class="k">Error</span>
-                        <span class="v">{{ message }}</span>
-                    </div>
-                </div>
-            } @else if (conversion(); as result) {
-                <div class="meta-strip">
-                    <div class="meta-item">
-                        <span class="k">Result</span>
-                        <span class="v">{{ result.resultLabel }}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="k">Rate</span>
-                        <span class="v">{{ result.rateLabel }}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="k">As of</span>
-                        <span class="v">{{ result.date }}</span>
-                    </div>
-                </div>
-            }
+                        </tbody>
+                    </table>
+                }
+            </div>
         </div>
-    </div>
-</section>
-
-<section class="tinted" id="reference">
-    <div class="wrap">
-        <div class="section-head">
-            <h2>Powers of ten</h2>
-            <p class="desc">Quick reference for the current pair, using live rates for the "from" currency.</p>
-        </div>
-        @if (powersOfTen(); as table) {
-            <table>
-                <thead>
-                    <tr>
-                        <th>{{ table.from }}</th>
-                        <th>{{ table.to }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (row of table.rows; track row.powerLabel) {
-                        <tr>
-                            <td>{{ row.powerLabel }}</td>
-                            <td>{{ row.convertedLabel }}</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
     </div>
 </section>
