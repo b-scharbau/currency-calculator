@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Currency Calculator</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f5f6fa;
+            --card: #ffffff;
+            --text: #1c1e26;
+            --muted: #6b7280;
+            --border: #e2e4e9;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --error: #dc2626;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #14151a;
+                --card: #1e2028;
+                --text: #f2f3f5;
+                --muted: #9ca3af;
+                --border: #33353f;
+                --accent: #6366f1;
+                --accent-hover: #7981f5;
+                --error: #f87171;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 24px;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        h1 {
+            margin: 0 0 24px;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .field {
+            margin-bottom: 16px;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+        }
+        input[type="number"]:focus, select:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: -1px;
+        }
+        .row {
+            display: flex;
+            align-items: end;
+            gap: 8px;
+        }
+        .row .field { flex: 1; margin-bottom: 0; }
+        .swap-btn {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease;
+        }
+        .swap-btn:hover { background: var(--border); }
+        .swap-btn:active { transform: rotate(180deg); }
+        .fields-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .fields-row .field { margin-bottom: 0; }
+        button[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: var(--accent);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover { background: var(--accent-hover); }
+        button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            min-height: 24px;
+        }
+        .result.hidden { display: none; }
+        .result .amount {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        .result .meta {
+            margin-top: 4px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .result.error {
+            color: var(--error);
+            border-color: var(--error);
+        }
+        table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.hidden { display: none; }
+        caption {
+            text-align: left;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        th, td {
+            padding: 8px 4px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
+        }
+        th:first-child, td:first-child {
+            text-align: left;
+        }
+        th {
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Currency Calculator</h1>
+
+        <form id="convert-form">
+            <div class="field">
+                <label for="amount">Amount</label>
+                <input type="number" id="amount" value="1" min="0" step="any" required>
+            </div>
+
+            <div class="fields-row">
+                <div class="field">
+                    <label for="from">From</label>
+                    <select id="from" required></select>
+                </div>
+                <button type="button" class="swap-btn" id="swap" title="Swap currencies" aria-label="Swap currencies">&#8646;</button>
+                <div class="field">
+                    <label for="to">To</label>
+                    <select id="to" required></select>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn">Convert</button>
+        </form>
+
+        <div class="result hidden" id="result"></div>
+
+        <table class="hidden" id="powers-table">
+            <caption>Powers of 10</caption>
+            <thead>
+                <tr>
+                    <th id="powers-from-header">From</th>
+                    <th id="powers-to-header">To</th>
+                </tr>
+            </thead>
+            <tbody id="powers-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const fromSelect = document.getElementById('from');
+        const toSelect = document.getElementById('to');
+        const form = document.getElementById('convert-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const resultEl = document.getElementById('result');
+        const swapBtn = document.getElementById('swap');
+        const powersTable = document.getElementById('powers-table');
+        const powersBody = document.getElementById('powers-body');
+        const powersFromHeader = document.getElementById('powers-from-header');
+        const powersToHeader = document.getElementById('powers-to-header');
+
+        const POWERS_OF_TEN = [1, 10, 100, 1000, 10000, 100000, 1000000];
+
+        function showResult(html, isError) {
+            resultEl.innerHTML = html;
+            resultEl.classList.remove('hidden');
+            resultEl.classList.toggle('error', Boolean(isError));
+        }
+
+        function renderPowersTable(from, to, rate) {
+            powersFromHeader.textContent = from;
+            powersToHeader.textContent = to;
+            powersBody.innerHTML = POWERS_OF_TEN.map((power) => `
+                <tr>
+                    <td>${power.toLocaleString()}</td>
+                    <td>${(power * rate).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+                </tr>
+            `).join('');
+            powersTable.classList.remove('hidden');
+        }
+
+        async function loadCurrencies() {
+            try {
+                const response = await fetch('/currencies');
+                const currencies = await response.json();
+                for (const { code, name } of currencies) {
+                    const option = `<option value="${code}">${code} &mdash; ${name}</option>`;
+                    fromSelect.insertAdjacentHTML('beforeend', option);
+                    toSelect.insertAdjacentHTML('beforeend', option);
+                }
+                fromSelect.value = 'JPY';
+                toSelect.value = 'EUR';
+                updatePowersTable();
+            } catch (err) {
+                showResult('Could not load currency list: ' + err.message, true);
+            }
+        }
+
+        async function updatePowersTable() {
+            const from = fromSelect.value;
+            const to = toSelect.value;
+            if (!from || !to) return;
+
+            try {
+                const response = await fetch(`/convert?amount=1&from=${from}&to=${to}`);
+                if (!response.ok) return;
+                const data = await response.json();
+                renderPowersTable(data.from, data.to, data.rate);
+            } catch (err) {
+                // leave the table as-is; the convert form will surface any real errors
+            }
+        }
+
+        fromSelect.addEventListener('change', updatePowersTable);
+        toSelect.addEventListener('change', updatePowersTable);
+
+        swapBtn.addEventListener('click', () => {
+            const tmp = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = tmp;
+            updatePowersTable();
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('amount').value;
+            const from = fromSelect.value;
+            const to = toSelect.value;
+
+            submitBtn.disabled = true;
+            showResult('Converting&hellip;', false);
+
+            try {
+                const response = await fetch(`/convert?amount=${encodeURIComponent(amount)}&from=${from}&to=${to}`);
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    showResult(error.message || response.statusText, true);
+                    return;
+                }
+                const data = await response.json();
+                showResult(`
+                    <div class="amount">${data.amount} ${data.from} = ${data.convertedAmount.toFixed(2)} ${data.to}</div>
+                    <div class="meta">1 ${data.from} = ${data.rate.toFixed(6)} ${data.to} &middot; as of ${data.date}</div>
+                `, false);
+                renderPowersTable(data.from, data.to, data.rate);
+            } catch (err) {
+                showResult('Error: ' + err.message, true);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        loadCurrencies();
+    </script>
+</body>
+</html>
