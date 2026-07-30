@@ -67,4 +67,3 @@ overrides the main datasource config for the test classpath.
 | GET    | `/currencies` | List all supported currencies                     |
 | GET    | `/currency`   | A random supported currency                        |
 | GET    | `/convert`    | Convert an amount; params: `amount`, `from`, `to`  |
-| GET    | `/health`     | Health check                                       |
