@@ -14,10 +14,13 @@ public class ExchangeRateService {
 
     private final RestClient restClient;
     private final CachedExchangeRateRepository repository;
+    private final CachedCurrencyRatesRepository currencyRatesRepository;
 
-    public ExchangeRateService(RestClient frankfurterRestClient, CachedExchangeRateRepository repository) {
+    public ExchangeRateService(RestClient frankfurterRestClient, CachedExchangeRateRepository repository,
+            CachedCurrencyRatesRepository currencyRatesRepository) {
         this.restClient = frankfurterRestClient;
         this.repository = repository;
+        this.currencyRatesRepository = currencyRatesRepository;
     }
 
     CurrencyConversionController.ConversionResult convert(String from, String to, double amount) {
@@ -66,7 +69,21 @@ public class ExchangeRateService {
 
     AllRatesResult ratesFor(String from) {
         String fromCode = from.toUpperCase();
+        Optional<CachedCurrencyRates> cached = currencyRatesRepository.findByBaseCurrency(fromCode);
+        LocalDate today = LocalDate.now();
+        if (cached.isPresent() && cached.get().getFetchedAt().equals(today)) {
+            return new AllRatesResult(cached.get().getRateDate().toString(), cached.get().getRates());
+        }
+
         FrankfurterResponse response = fetchAllRates(fromCode);
+        LocalDate rateDate = LocalDate.parse(response.date());
+
+        if (cached.isPresent()) {
+            cached.get().update(rateDate, today, response.rates());
+            currencyRatesRepository.save(cached.get());
+        } else {
+            currencyRatesRepository.save(new CachedCurrencyRates(fromCode, rateDate, today, response.rates()));
+        }
         return new AllRatesResult(response.date(), response.rates());
     }
 

@@ -1,6 +1,7 @@
 package com.bscharbau.currencycalculator;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class ExchangeRateServiceTest {
 
     private MockRestServiceServer server;
     private CachedExchangeRateRepository repository;
+    private CachedCurrencyRatesRepository currencyRatesRepository;
     private ExchangeRateService service;
 
     @BeforeEach
@@ -38,7 +40,8 @@ class ExchangeRateServiceTest {
         server = MockRestServiceServer.bindTo(builder).build();
         RestClient restClient = builder.build();
         repository = mock(CachedExchangeRateRepository.class);
-        service = new ExchangeRateService(restClient, repository);
+        currencyRatesRepository = mock(CachedCurrencyRatesRepository.class);
+        service = new ExchangeRateService(restClient, repository, currencyRatesRepository);
     }
 
     @Test
@@ -148,7 +151,8 @@ class ExchangeRateServiceTest {
     }
 
     @Test
-    void ratesForReturnsAllRatesForTheGivenCurrency() {
+    void ratesForFetchesFromApiAndCachesWhenNoCacheEntryExists() {
+        given(currencyRatesRepository.findByBaseCurrency("USD")).willReturn(Optional.empty());
         server.expect(requestTo(BASE_URL + "/latest?amount=1&from=USD"))
                 .andRespond(withSuccess("{\"amount\":1.0,\"base\":\"USD\",\"date\":\"2026-07-29\",\"rates\":{\"EUR\":0.9,\"JPY\":149.5}}", MediaType.APPLICATION_JSON));
 
@@ -157,10 +161,42 @@ class ExchangeRateServiceTest {
         assertThat(result.date()).isEqualTo("2026-07-29");
         assertThat(result.rates()).containsEntry("EUR", 0.9).containsEntry("JPY", 149.5);
         server.verify();
+        verify(currencyRatesRepository).save(any(CachedCurrencyRates.class));
+    }
+
+    @Test
+    void ratesForUsesCachedRatesWhenAlreadyFetchedToday() {
+        CachedCurrencyRates cached = new CachedCurrencyRates(
+                "USD", LocalDate.now(), LocalDate.now(), Map.of("EUR", 0.9, "JPY", 149.5));
+        given(currencyRatesRepository.findByBaseCurrency("USD")).willReturn(Optional.of(cached));
+
+        var result = service.ratesFor("USD");
+
+        assertThat(result.rates()).containsEntry("EUR", 0.9).containsEntry("JPY", 149.5);
+        server.verify();
+        verify(currencyRatesRepository, never()).save(any());
+    }
+
+    @Test
+    void ratesForRefetchesAndUpdatesCacheWhenEntryIsStale() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        CachedCurrencyRates cached = new CachedCurrencyRates("USD", yesterday, yesterday, Map.of("EUR", 0.85));
+        given(currencyRatesRepository.findByBaseCurrency("USD")).willReturn(Optional.of(cached));
+        server.expect(requestTo(BASE_URL + "/latest?amount=1&from=USD"))
+                .andRespond(withSuccess("{\"amount\":1.0,\"base\":\"USD\",\"date\":\"2026-07-29\",\"rates\":{\"EUR\":0.95}}", MediaType.APPLICATION_JSON));
+
+        var result = service.ratesFor("USD");
+
+        assertThat(result.rates()).containsEntry("EUR", 0.95);
+        server.verify();
+        verify(currencyRatesRepository).save(cached);
+        assertThat(cached.getRates()).containsEntry("EUR", 0.95);
+        assertThat(cached.getFetchedAt()).isEqualTo(LocalDate.now());
     }
 
     @Test
     void ratesForThrowsBadRequestForUnknownCurrency() {
+        given(currencyRatesRepository.findByBaseCurrency("XXX")).willReturn(Optional.empty());
         server.expect(requestTo(BASE_URL + "/latest?amount=1&from=XXX"))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND).body("not found").contentType(MediaType.TEXT_PLAIN));
 
