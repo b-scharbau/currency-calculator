@@ -146,4 +146,27 @@ class ExchangeRateServiceTest {
 
         assertThat(result.convertedAmount()).isEqualTo(0.0);
     }
+
+    @Test
+    void ratesForReturnsAllRatesForTheGivenCurrency() {
+        server.expect(requestTo(BASE_URL + "/latest?amount=1&from=USD"))
+                .andRespond(withSuccess("{\"amount\":1.0,\"base\":\"USD\",\"date\":\"2026-07-29\",\"rates\":{\"EUR\":0.9,\"JPY\":149.5}}", MediaType.APPLICATION_JSON));
+
+        var result = service.ratesFor("usd");
+
+        assertThat(result.date()).isEqualTo("2026-07-29");
+        assertThat(result.rates()).containsEntry("EUR", 0.9).containsEntry("JPY", 149.5);
+        server.verify();
+    }
+
+    @Test
+    void ratesForThrowsBadRequestForUnknownCurrency() {
+        server.expect(requestTo(BASE_URL + "/latest?amount=1&from=XXX"))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND).body("not found").contentType(MediaType.TEXT_PLAIN));
+
+        assertThatThrownBy(() -> service.ratesFor("XXX"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasFieldOrPropertyWithValue("statusCode", HttpStatus.BAD_REQUEST);
+        server.verify();
+    }
 }

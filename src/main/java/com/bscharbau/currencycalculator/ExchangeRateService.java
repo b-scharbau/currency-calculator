@@ -64,6 +64,26 @@ public class ExchangeRateService {
         }
     }
 
+    AllRatesResult ratesFor(String from) {
+        String fromCode = from.toUpperCase();
+        FrankfurterResponse response = fetchAllRates(fromCode);
+        return new AllRatesResult(response.date(), response.rates());
+    }
+
+    private FrankfurterResponse fetchAllRates(String fromCode) {
+        try {
+            return FrankfurterRetry.execute(() -> restClient.get()
+                    .uri("/latest?amount=1&from={from}", fromCode)
+                    .retrieve()
+                    .body(FrankfurterResponse.class));
+        } catch (HttpClientErrorException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown currency code: " + fromCode, e);
+        }
+    }
+
+    record AllRatesResult(String date, Map<String, Double> rates) {
+    }
+
     private record RateInfo(double rate, LocalDate date) {
     }
 

@@ -1,6 +1,7 @@
 package com.bscharbau.currencycalculator;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -21,6 +22,9 @@ class CurrencyControllerTest {
 
     @MockitoBean
     private CurrencyService currencyService;
+
+    @MockitoBean
+    private ExchangeRateService exchangeRateService;
 
     @Test
     void currenciesReturnsFullList() throws Exception {
@@ -47,14 +51,45 @@ class CurrencyControllerTest {
     }
 
     @Test
-    void currencyReturnsOneOfTheAvailableCurrencies() throws Exception {
+    void currencyWithoutCodeReturnsRandomCurrencyWithRates() throws Exception {
         given(currencyService.fetchCurrencies()).willReturn(List.of(
                 new CurrencyController.Currency("JPY", "Japanese Yen")
         ));
+        given(exchangeRateService.ratesFor("JPY")).willReturn(
+                new ExchangeRateService.AllRatesResult("2026-07-29", Map.of("EUR", 0.006, "USD", 0.0067)));
 
         mockMvc.perform(get("/currency"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("JPY"))
-                .andExpect(jsonPath("$.name").value("Japanese Yen"));
+                .andExpect(jsonPath("$.name").value("Japanese Yen"))
+                .andExpect(jsonPath("$.date").value("2026-07-29"))
+                .andExpect(jsonPath("$.rates.EUR").value(0.006))
+                .andExpect(jsonPath("$.rates.USD").value(0.0067));
+    }
+
+    @Test
+    void currencyWithCodeReturnsThatSpecificCurrency() throws Exception {
+        given(currencyService.fetchCurrencies()).willReturn(List.of(
+                new CurrencyController.Currency("JPY", "Japanese Yen"),
+                new CurrencyController.Currency("USD", "US Dollar")
+        ));
+        given(exchangeRateService.ratesFor("USD")).willReturn(
+                new ExchangeRateService.AllRatesResult("2026-07-29", Map.of("JPY", 149.5)));
+
+        mockMvc.perform(get("/currency").param("code", "usd"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("USD"))
+                .andExpect(jsonPath("$.name").value("US Dollar"))
+                .andExpect(jsonPath("$.rates.JPY").value(149.5));
+    }
+
+    @Test
+    void currencyWithUnknownCodeReturnsBadRequest() throws Exception {
+        given(currencyService.fetchCurrencies()).willReturn(List.of(
+                new CurrencyController.Currency("JPY", "Japanese Yen")
+        ));
+
+        mockMvc.perform(get("/currency").param("code", "XXX"))
+                .andExpect(status().isBadRequest());
     }
 }
