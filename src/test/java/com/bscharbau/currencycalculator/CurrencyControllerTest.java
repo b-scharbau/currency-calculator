@@ -63,8 +63,11 @@ class CurrencyControllerTest {
                 .andExpect(jsonPath("$.code").value("JPY"))
                 .andExpect(jsonPath("$.name").value("Japanese Yen"))
                 .andExpect(jsonPath("$.date").value("2026-07-29"))
-                .andExpect(jsonPath("$.rates.EUR").value(0.006))
-                .andExpect(jsonPath("$.rates.USD").value(0.0067));
+                .andExpect(jsonPath("$.rates", hasSize(2)))
+                .andExpect(jsonPath("$.rates[0].to").value("EUR"))
+                .andExpect(jsonPath("$.rates[0].rate").value(0.006))
+                .andExpect(jsonPath("$.rates[1].to").value("USD"))
+                .andExpect(jsonPath("$.rates[1].rate").value(0.0067));
     }
 
     @Test
@@ -80,7 +83,9 @@ class CurrencyControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("USD"))
                 .andExpect(jsonPath("$.name").value("US Dollar"))
-                .andExpect(jsonPath("$.rates.JPY").value(149.5));
+                .andExpect(jsonPath("$.rates", hasSize(1)))
+                .andExpect(jsonPath("$.rates[0].to").value("JPY"))
+                .andExpect(jsonPath("$.rates[0].rate").value(149.5));
     }
 
     @Test

@@ -354,9 +354,9 @@
             const response = await fetch(`/currency?code=${from}`);
             if (!response.ok) return;
             const data = await response.json();
-            const rate = data.rates[to];
-            if (rate === undefined) return;
-            renderPowersTable(data.code, to, rate);
+            const entry = data.rates.find((r) => r.to === to);
+            if (!entry) return;
+            renderPowersTable(data.code, to, entry.rate);
         } catch (err) {
             // leave the table as-is; the convert form will surface any real errors
         }

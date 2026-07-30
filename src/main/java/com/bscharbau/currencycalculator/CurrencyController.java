@@ -2,8 +2,8 @@ package com.bscharbau.currencycalculator;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +31,11 @@ public class CurrencyController {
             @RequestParam(required = false) String code) {
         Currency currency = code == null ? randomCurrency() : lookupCurrency(code);
         ExchangeRateService.AllRatesResult rates = exchangeRateService.ratesFor(currency.code());
-        return new CurrencyRates(currency.code(), currency.name(), rates.date(), rates.rates());
+        List<RateEntry> rateEntries = rates.rates().entrySet().stream()
+                .map(entry -> new RateEntry(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(RateEntry::to))
+                .toList();
+        return new CurrencyRates(currency.code(), currency.name(), rates.date(), rateEntries);
     }
 
     @Operation(summary = "List all supported currencies", description = "Sourced from Frankfurter and cached in the database.")
@@ -56,6 +60,9 @@ public class CurrencyController {
     record Currency(String code, String name) {
     }
 
-    record CurrencyRates(String code, String name, String date, Map<String, Double> rates) {
+    record CurrencyRates(String code, String name, String date, List<RateEntry> rates) {
+    }
+
+    record RateEntry(String to, double rate) {
     }
 }
