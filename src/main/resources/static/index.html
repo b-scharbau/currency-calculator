@@ -362,21 +362,20 @@
         }
     }
 
-    fromSelect.addEventListener('change', updatePowersTable);
-    toSelect.addEventListener('change', updatePowersTable);
+    function debounce(fn, delayMs) {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn(...args), delayMs);
+        };
+    }
 
-    swapBtn.addEventListener('click', () => {
-        const tmp = fromSelect.value;
-        fromSelect.value = toSelect.value;
-        toSelect.value = tmp;
-        updatePowersTable();
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const amount = document.getElementById('amount').value;
+    async function performConversion() {
+        const amountInput = document.getElementById('amount');
+        const amount = amountInput.value;
         const from = fromSelect.value;
         const to = toSelect.value;
+        if (!amountInput.checkValidity() || !from || !to) return;
 
         submitBtn.disabled = true;
         showResult('<div class="meta-item"><span class="k">Status</span><span class="v">Converting&hellip;</span></div>', false);
@@ -409,9 +408,35 @@
         } finally {
             submitBtn.disabled = false;
         }
+    }
+
+    const performConversionDebounced = debounce(performConversion, 300);
+
+    document.getElementById('amount').addEventListener('input', performConversionDebounced);
+
+    fromSelect.addEventListener('change', () => {
+        updatePowersTable();
+        performConversion();
+    });
+    toSelect.addEventListener('change', () => {
+        updatePowersTable();
+        performConversion();
     });
 
-    loadCurrencies();
+    swapBtn.addEventListener('click', () => {
+        const tmp = fromSelect.value;
+        fromSelect.value = toSelect.value;
+        toSelect.value = tmp;
+        updatePowersTable();
+        performConversion();
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        performConversion();
+    });
+
+    loadCurrencies().then(performConversion);
 </script>
 
 </body>
