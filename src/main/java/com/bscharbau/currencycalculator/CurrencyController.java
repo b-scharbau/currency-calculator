@@ -8,27 +8,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CurrencyController {
 
-    private static final List<Currency> CURRENCIES = List.of(
-            new Currency("USD", "US Dollar"),
-            new Currency("EUR", "Euro"),
-            new Currency("GBP", "British Pound"),
-            new Currency("JPY", "Japanese Yen"),
-            new Currency("CHF", "Swiss Franc"),
-            new Currency("AUD", "Australian Dollar"),
-            new Currency("CAD", "Canadian Dollar"),
-            new Currency("CNY", "Chinese Yuan"),
-            new Currency("NZD", "New Zealand Dollar"),
-            new Currency("SEK", "Swedish Krona")
-    );
+    private final CurrencyService currencyService;
+
+    public CurrencyController(CurrencyService currencyService) {
+        this.currencyService = currencyService;
+    }
 
     @GetMapping("/currency")
     Currency currency() {
-        return CURRENCIES.get(ThreadLocalRandom.current().nextInt(CURRENCIES.size()));
+        List<Currency> currencies = currencyService.fetchCurrencies();
+        return currencies.get(ThreadLocalRandom.current().nextInt(currencies.size()));
     }
 
     @GetMapping("/currencies")
     List<Currency> currencies() {
-        return CURRENCIES;
+        return currencyService.fetchCurrencies();
     }
 
     record Currency(String code, String name) {

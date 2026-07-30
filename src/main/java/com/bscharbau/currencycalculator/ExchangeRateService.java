@@ -12,10 +12,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ExchangeRateService {
 
-    private final RestClient restClient = RestClient.create("https://api.frankfurter.dev/v1");
+    private final RestClient restClient;
     private final CachedExchangeRateRepository repository;
 
-    public ExchangeRateService(CachedExchangeRateRepository repository) {
+    public ExchangeRateService(RestClient frankfurterRestClient, CachedExchangeRateRepository repository) {
+        this.restClient = frankfurterRestClient;
         this.repository = repository;
     }
 
@@ -54,10 +55,10 @@ public class ExchangeRateService {
 
     private FrankfurterResponse fetchRate(String fromCode, String toCode) {
         try {
-            return restClient.get()
+            return FrankfurterRetry.execute(() -> restClient.get()
                     .uri("/latest?amount=1&from={from}&to={to}", fromCode, toCode)
                     .retrieve()
-                    .body(FrankfurterResponse.class);
+                    .body(FrankfurterResponse.class));
         } catch (HttpClientErrorException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown currency code: " + fromCode + " or " + toCode, e);
         }
