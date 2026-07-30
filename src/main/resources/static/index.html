@@ -276,7 +276,7 @@
     <div class="wrap">
         <div class="section-head">
             <h2>Powers of ten</h2>
-            <p class="desc">Quick reference for the current pair, using today's cached rate.</p>
+            <p class="desc">Quick reference for the current pair, using live rates for the "from" currency.</p>
         </div>
         <table class="hidden" id="powers-table">
             <thead>
@@ -351,10 +351,12 @@
         if (!from || !to) return;
 
         try {
-            const response = await fetch(`/convert?amount=1&from=${from}&to=${to}`);
+            const response = await fetch(`/currency?code=${from}`);
             if (!response.ok) return;
             const data = await response.json();
-            renderPowersTable(data.from, data.to, data.rate);
+            const rate = data.rates[to];
+            if (rate === undefined) return;
+            renderPowersTable(data.code, to, rate);
         } catch (err) {
             // leave the table as-is; the convert form will surface any real errors
         }
