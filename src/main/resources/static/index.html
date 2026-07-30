@@ -4,28 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Currency Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: light dark;
-            --bg: #f5f6fa;
-            --card: #ffffff;
-            --text: #1c1e26;
-            --muted: #6b7280;
-            --border: #e2e4e9;
-            --accent: #4f46e5;
-            --accent-hover: #4338ca;
-            --error: #dc2626;
+            --page-bg: #DEDBD3;
+            --paper: #F7F6F3;
+            --ink: #14202B;
+            --signal: #2B6E68;
+            --muted: #6B7680;
+            --line: #D8D3C7;
+            --error: #A8402A;
         }
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg: #14151a;
-                --card: #1e2028;
-                --text: #f2f3f5;
-                --muted: #9ca3af;
-                --border: #33353f;
-                --accent: #6366f1;
-                --accent-hover: #7981f5;
-                --error: #f87171;
+                --page-bg: #0D1418;
+                --paper: #172128;
+                --ink: #F2F1EC;
+                --signal: #57B3A8;
+                --muted: #8FA6A2;
+                --line: #2C3A40;
+                --error: #E08877;
             }
         }
         * { box-sizing: border-box; }
@@ -35,30 +36,49 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--ink);
+            font-family: 'IBM Plex Mono', monospace;
             padding: 24px;
         }
         .card {
             width: 100%;
-            max-width: 420px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            max-width: 440px;
+            background: var(--paper);
+            border-radius: 4mm;
+            padding: 10mm 9mm;
+            box-shadow: 0 2px 10px rgba(20, 32, 43, 0.18);
         }
         h1 {
-            margin: 0 0 24px;
-            font-size: 1.4rem;
-            font-weight: 600;
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 20pt;
+            letter-spacing: -0.01em;
+            line-height: 1.15;
+        }
+        .tagline {
+            font-size: 8pt;
+            color: var(--signal);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 1.5mm;
+        }
+        .signal-line {
+            width: 100%;
+            height: 6mm;
+            margin: 4mm 0;
+        }
+        .signal-line polyline {
+            stroke: var(--signal);
         }
         label {
             display: block;
-            font-size: 0.8rem;
-            font-weight: 600;
+            font-size: 7.5pt;
+            font-weight: 500;
             color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
             margin-bottom: 6px;
         }
         .field {
@@ -67,112 +87,122 @@
         input[type="number"], select {
             width: 100%;
             padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
+            border-radius: 2mm;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            color: var(--ink);
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 1rem;
         }
         input[type="number"]:focus, select:focus {
-            outline: 2px solid var(--accent);
+            outline: 2px solid var(--signal);
             outline-offset: -1px;
         }
-        .row {
+        .fields-row {
             display: flex;
             align-items: end;
             gap: 8px;
+            margin-bottom: 20px;
         }
-        .row .field { flex: 1; margin-bottom: 0; }
+        .fields-row .field { flex: 1; margin-bottom: 0; }
         .swap-btn {
             flex: 0 0 auto;
             width: 40px;
             height: 40px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
+            border-radius: 2mm;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            color: var(--signal);
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.15s ease;
         }
-        .swap-btn:hover { background: var(--border); }
+        .swap-btn:hover { background: var(--line); }
         .swap-btn:active { transform: rotate(180deg); }
-        .fields-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-        .fields-row .field { margin-bottom: 0; }
         button[type="submit"] {
             width: 100%;
             padding: 12px;
             border: none;
-            border-radius: 10px;
-            background: var(--accent);
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 2mm;
+            background: var(--signal);
+            color: var(--paper);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 8.5pt;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
             cursor: pointer;
         }
-        button[type="submit"]:hover { background: var(--accent-hover); }
-        button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+        button[type="submit"]:hover { opacity: 0.9; }
+        button[type="submit"]:disabled { opacity: 0.5; cursor: default; }
         .result {
             margin-top: 20px;
-            padding: 16px;
-            border-radius: 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
+            padding: 5mm;
+            border-radius: 2mm;
+            background: var(--paper);
+            border: 1px solid var(--line);
             min-height: 24px;
         }
         .result.hidden { display: none; }
         .result .amount {
-            font-size: 1.4rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
             font-weight: 700;
+            color: var(--ink);
         }
         .result .meta {
             margin-top: 4px;
-            font-size: 0.8rem;
+            font-size: 7.5pt;
             color: var(--muted);
         }
         .result.error {
             color: var(--error);
             border-color: var(--error);
         }
+        .caption {
+            font-size: 7.5pt;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 20px 0 8px;
+        }
         table {
-            margin-top: 20px;
             width: 100%;
             border-collapse: collapse;
         }
         table.hidden { display: none; }
-        caption {
-            text-align: left;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
+        table.hidden + .caption { display: none; }
         th, td {
             padding: 8px 4px;
             text-align: right;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--line);
             font-variant-numeric: tabular-nums;
         }
         th:first-child, td:first-child {
             text-align: left;
         }
         th {
-            font-size: 0.75rem;
+            font-size: 7pt;
             color: var(--muted);
-            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Currency Calculator</h1>
+        <div class="tagline">Live rates &middot; Frankfurter API</div>
+
+        <svg class="signal-line" viewBox="0 0 300 24" preserveAspectRatio="none">
+            <polyline points="0,12 40,12 46,4 52,20 58,12 100,12 106,6 112,18 118,12 170,12 176,3 182,21 188,12 240,12 246,7 252,17 258,12 300,12"
+                fill="none" stroke-width="1.4" opacity="0.7" />
+        </svg>
 
         <form id="convert-form">
             <div class="field">
@@ -197,8 +227,8 @@
 
         <div class="result hidden" id="result"></div>
 
+        <div class="caption">Powers of 10</div>
         <table class="hidden" id="powers-table">
-            <caption>Powers of 10</caption>
             <thead>
                 <tr>
                     <th id="powers-from-header">From</th>
