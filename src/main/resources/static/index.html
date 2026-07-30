@@ -317,7 +317,6 @@
     const fromSelect = document.getElementById('from');
     const toSelect = document.getElementById('to');
     const form = document.getElementById('convert-form');
-    const submitBtn = document.getElementById('submit-btn');
     const resultEl = document.getElementById('result');
     const swapBtn = document.getElementById('swap');
     const powersTable = document.getElementById('powers-table');
@@ -326,6 +325,8 @@
     const powersToHeader = document.getElementById('powers-to-header');
 
     const POWERS_OF_TEN = [1, 10, 100, 1000, 10000, 100000, 1000000];
+
+    let currentRates = null; // { code, name, date, rates: [{ to, rate }, ...] } for the current "from" currency
 
     function showResult(html, isError) {
         resultEl.innerHTML = html;
@@ -356,85 +357,75 @@
             }
             fromSelect.value = 'JPY';
             toSelect.value = 'EUR';
-            updatePowersTable();
         } catch (err) {
             showResult(`<div class="meta-item"><span class="k">Error</span><span class="v">Could not load currency list: ${err.message}</span></div>`, true);
         }
     }
 
-    async function updatePowersTable() {
+    // Fetches every rate for the current "from" currency once, so switching "to", swapping,
+    // or typing an amount can all reuse this instead of making a fresh request each time.
+    async function fetchRatesForFrom() {
         const from = fromSelect.value;
-        const to = toSelect.value;
-        if (!from || !to) return;
+        if (!from) return;
 
         try {
             const response = await fetch(`/currency?code=${from}`);
-            if (!response.ok) return;
-            const data = await response.json();
-            const entry = data.rates.find((r) => r.to === to);
-            if (!entry) return;
-            renderPowersTable(data.code, to, entry.rate);
-        } catch (err) {
-            // leave the table as-is; the convert form will surface any real errors
-        }
-    }
-
-    function debounce(fn, delayMs) {
-        let timeoutId;
-        return (...args) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => fn(...args), delayMs);
-        };
-    }
-
-    async function performConversion() {
-        const amountInput = document.getElementById('amount');
-        const amount = amountInput.value;
-        const from = fromSelect.value;
-        const to = toSelect.value;
-        if (!amountInput.checkValidity() || !from || !to) return;
-
-        submitBtn.disabled = true;
-        showResult('<div class="meta-item"><span class="k">Status</span><span class="v">Converting&hellip;</span></div>', false);
-
-        try {
-            const response = await fetch(`/convert?amount=${encodeURIComponent(amount)}&from=${from}&to=${to}`);
             if (!response.ok) {
+                currentRates = null;
                 const error = await response.json().catch(() => ({}));
                 showResult(`<div class="meta-item"><span class="k">Error</span><span class="v">${error.message || response.statusText}</span></div>`, true);
                 return;
             }
-            const data = await response.json();
-            showResult(`
-                <div class="meta-item">
-                    <span class="k">Result</span>
-                    <span class="v">${data.amount} ${data.from} = ${data.convertedAmount.toFixed(2)} ${data.to}</span>
-                </div>
-                <div class="meta-item">
-                    <span class="k">Rate</span>
-                    <span class="v">1 ${data.from} = ${data.rate.toFixed(6)} ${data.to}</span>
-                </div>
-                <div class="meta-item">
-                    <span class="k">As of</span>
-                    <span class="v">${data.date}</span>
-                </div>
-            `, false);
-            renderPowersTable(data.from, data.to, data.rate);
+            currentRates = await response.json();
+            updatePowersTable();
+            performConversion();
         } catch (err) {
+            currentRates = null;
             showResult(`<div class="meta-item"><span class="k">Error</span><span class="v">${err.message}</span></div>`, true);
-        } finally {
-            submitBtn.disabled = false;
         }
     }
 
-    const performConversionDebounced = debounce(performConversion, 300);
+    function updatePowersTable() {
+        const to = toSelect.value;
+        if (!currentRates || !to) return;
 
-    document.getElementById('amount').addEventListener('input', performConversionDebounced);
+        const entry = currentRates.rates.find((r) => r.to === to);
+        if (!entry) return;
+        renderPowersTable(currentRates.code, to, entry.rate);
+    }
 
-    fromSelect.addEventListener('change', () => {
-        updatePowersTable();
-        performConversion();
-    });
+    function performConversion() {
+        const amountInput = document.getElementById('amount');
+        const amount = amountInput.value;
+        const to = toSelect.value;
+        if (!amountInput.checkValidity() || !currentRates || !to) return;
+
+        const entry = currentRates.rates.find((r) => r.to === to);
+        if (!entry) {
+            showResult(`<div class="meta-item"><span class="k">Error</span><span class="v">Unknown currency code: ${to}</span></div>`, true);
+            return;
+        }
+
+        const convertedAmount = Number(amount) * entry.rate;
+        showResult(`
+            <div class="meta-item">
+                <span class="k">Result</span>
+                <span class="v">${amount} ${currentRates.code} = ${convertedAmount.toFixed(2)} ${to}</span>
+            </div>
+            <div class="meta-item">
+                <span class="k">Rate</span>
+                <span class="v">1 ${currentRates.code} = ${entry.rate.toFixed(6)} ${to}</span>
+            </div>
+            <div class="meta-item">
+                <span class="k">As of</span>
+                <span class="v">${currentRates.date}</span>
+            </div>
+        `, false);
+    }
+
+    document.getElementById('amount').addEventListener('input', performConversion);
+
+    fromSelect.addEventListener('change', fetchRatesForFrom);
     toSelect.addEventListener('change', () => {
         updatePowersTable();
         performConversion();
@@ -444,8 +435,7 @@
         const tmp = fromSelect.value;
         fromSelect.value = toSelect.value;
         toSelect.value = tmp;
-        updatePowersTable();
-        performConversion();
+        fetchRatesForFrom();
     });
 
     form.addEventListener('submit', (e) => {
@@ -453,7 +443,7 @@
         performConversion();
     });
 
-    loadCurrencies().then(performConversion);
+    loadCurrencies().then(fetchRatesForFrom);
 </script>
 
 </body>
