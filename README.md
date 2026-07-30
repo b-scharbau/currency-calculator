@@ -67,3 +67,6 @@ overrides the main datasource config for the test classpath.
 | GET    | `/currencies` | List all supported currencies                     |
 | GET    | `/currency`   | A random supported currency                        |
 | GET    | `/convert`    | Convert an amount; params: `amount`, `from`, `to`  |
+
+Interactive API docs (Swagger UI) are at `/swagger-ui.html`; the raw OpenAPI spec is at
+`/v3/api-docs`.
