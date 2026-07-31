@@ -11,20 +11,25 @@
     <groupId>com.bscharbau</groupId>
     <artifactId>currency-calculator</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>currency-calculator</name>
-    <description>currency-calculator</description>
-    <url/>
+    <name>Currency Calculator</name>
+    <description>Converts between currencies using live rates from the Frankfurter API</description>
+    <url>https://github.com/b-scharbau/currency-calculator</url>
     <licenses>
-        <license/>
+        <license>
+            <name>MIT License</name>
+            <url>https://github.com/b-scharbau/currency-calculator/blob/master/LICENSE</url>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <name>Benjamin Scharbau</name>
+            <url>https://bscharbau.com</url>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:git://github.com/b-scharbau/currency-calculator.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/b-scharbau/currency-calculator.git</developerConnection>
+        <url>https://github.com/b-scharbau/currency-calculator</url>
     </scm>
     <properties>
         <java.version>21</java.version>
