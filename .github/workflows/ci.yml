@@ -89,12 +89,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # TEMPORARY: decode just the aud/sub claims (never the full token) to debug an
-      # AssumeRoleWithWebIdentity authorization failure. Remove once resolved.
-      - name: Debug OIDC claims
-        run: |
-          python3 -c "import json, base64, os, urllib.request; url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=sts.amazonaws.com'; req = urllib.request.Request(url, headers={'Authorization': 'bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}); tok = json.load(urllib.request.urlopen(req))['value']; p = tok.split('.')[1]; p += '=' * (-len(p) % 4); claims = json.loads(base64.urlsafe_b64decode(p)); print(json.dumps({k: claims.get(k) for k in ('aud', 'sub', 'iss', 'repository', 'ref')}, indent=2))"
-
       # Scoped via OIDC (see infra/github_oidc.tf) to this exact repo+branch, and to only pushing
       # images to this one ECR repo and rolling this one ECS service — no long-lived AWS credentials
       # stored anywhere.

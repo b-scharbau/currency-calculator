@@ -11,6 +11,10 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 # Trust is scoped to this exact repo AND branch, so only a push to master on
 # b-scharbau/currency-calculator can assume this role — not PRs, not other branches, not forks.
+#
+# The sub claim includes GitHub's immutable owner/repo IDs (e.g. "b-scharbau@89822449"), not just
+# the names — a security feature that stops a repo/org rename from silently hijacking this trust
+# relationship. Confirmed via a one-off debug step that decoded the actual token GitHub issued.
 resource "aws_iam_role" "github_actions_deploy" {
   name = "${local.app_name}-github-actions-deploy"
 
@@ -23,9 +27,7 @@ resource "aws_iam_role" "github_actions_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        }
-        StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:b-scharbau/currency-calculator:ref:refs/heads/master"
+          "token.actions.githubusercontent.com:sub" = "repo:b-scharbau@89822449/currency-calculator@1316921570:ref:refs/heads/master"
         }
       }
     }]
