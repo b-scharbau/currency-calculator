@@ -50,7 +50,11 @@ nav .wrap {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 64px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    min-height: 64px;
+    padding-top: 12px;
+    padding-bottom: 12px;
 }
 nav .brand {
     font-family: 'Space Grotesk', sans-serif;
@@ -79,6 +83,11 @@ nav .cta {
     border-radius: 4px;
     text-decoration: none;
     white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    nav .nav-right { gap: 12px; }
+    nav .cta { padding: 8px 12px; }
 }
 
 header.hero { padding: 48px 0 32px; }
