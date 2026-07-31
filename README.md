@@ -131,10 +131,10 @@ To deploy manually (e.g. testing an image before pushing to master):
 
 ```sh
 # 1. Build and push a new image
-docker build -t 768664385987.dkr.ecr.ap-northeast-1.amazonaws.com/currency-calculator:latest .
+docker build -t <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/currency-calculator:latest .
 aws ecr get-login-password --region ap-northeast-1 | \
-  docker login --username AWS --password-stdin 768664385987.dkr.ecr.ap-northeast-1.amazonaws.com
-docker push 768664385987.dkr.ecr.ap-northeast-1.amazonaws.com/currency-calculator:latest
+  docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/currency-calculator:latest
 
 # 2. Roll the ECS service to pick up the new image
 aws ecs update-service --cluster currency-calculator --service currency-calculator \
