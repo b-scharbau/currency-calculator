@@ -7,6 +7,8 @@
 A small Spring Boot app for converting between currencies, using live rates from the
 [Frankfurter API](https://frankfurter.dev/). Built with Java 21 and Spring Boot 4.1.
 
+![Screenshot of the currency calculator app](docs/screenshot.jpg)
+
 ## Features
 
 - Convert an amount between any two supported currencies
