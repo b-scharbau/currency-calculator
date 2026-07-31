@@ -11,18 +11,18 @@
                     <div class="fields-row">
                         <div class="field">
                             <label for="from">From</label>
-                            <select id="from" [value]="from()" (change)="onFromChange($event)" required>
+                            <select id="from" (change)="onFromChange($event)" required>
                                 @for (currency of currencies(); track currency.code) {
-                                    <option [value]="currency.code">{{ currency.code }} &mdash; {{ currency.name }}</option>
+                                    <option [value]="currency.code" [selected]="currency.code === from()">{{ currency.code }} &mdash; {{ currency.name }}</option>
                                 }
                             </select>
                         </div>
                         <button type="button" class="swap-btn" (click)="onSwap()" title="Swap currencies" aria-label="Swap currencies">&#8646;</button>
                         <div class="field">
                             <label for="to">To</label>
-                            <select id="to" [value]="to()" (change)="onToChange($event)" required>
+                            <select id="to" (change)="onToChange($event)" required>
                                 @for (currency of currencies(); track currency.code) {
-                                    <option [value]="currency.code">{{ currency.code }} &mdash; {{ currency.name }}</option>
+                                    <option [value]="currency.code" [selected]="currency.code === to()">{{ currency.code }} &mdash; {{ currency.name }}</option>
                                 }
                             </select>
                         </div>
