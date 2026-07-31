@@ -73,3 +73,41 @@ jobs:
       - run: npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+
+  deploy:
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: ap-northeast-1
+      ECR_REPOSITORY: 768664385987.dkr.ecr.ap-northeast-1.amazonaws.com/currency-calculator
+      ECS_CLUSTER: currency-calculator
+      ECS_SERVICE: currency-calculator
+    steps:
+      - uses: actions/checkout@v4
+
+      # Scoped via OIDC (see infra/github_oidc.tf) to this exact repo+branch, and to only pushing
+      # images to this one ECR repo and rolling this one ECS service — no long-lived AWS credentials
+      # stored anywhere.
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::768664385987:role/currency-calculator-github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        run: |
+          docker build -t "$ECR_REPOSITORY:latest" -t "$ECR_REPOSITORY:${{ github.sha }}" .
+          docker push "$ECR_REPOSITORY:latest"
+          docker push "$ECR_REPOSITORY:${{ github.sha }}"
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" \
+            --force-new-deployment --region "$AWS_REGION" > /dev/null
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" \
+            --region "$AWS_REGION"

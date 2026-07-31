@@ -115,7 +115,15 @@ resource layout: ECR, ACM, ALB, ECS, IAM, the SSM-stored DB password, and the ad
 Route53/security-group records into the existing shared `bscharbau.com` zone and RDS instance).
 
 Initial infrastructure setup (`terraform apply` + the one-off database bootstrap below) has already
-been done. Deploying a new image build is a manual runbook:
+been done.
+
+**Deploys are automatic**: the `deploy` job in `.github/workflows/ci.yml` builds and pushes a new
+image to ECR and rolls the ECS service on every push to `master`, once the `backend` and `frontend`
+test jobs pass. It authenticates to AWS via OIDC (`infra/github_oidc.tf`) — a role trusted only for
+this exact repo on `refs/heads/master`, scoped to just pushing this one ECR repo and updating this
+one ECS service. No AWS credentials are stored in GitHub.
+
+To deploy manually (e.g. testing an image before pushing to master):
 
 ```sh
 # 1. Build and push a new image

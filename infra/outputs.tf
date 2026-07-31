@@ -9,3 +9,7 @@ output "ecr_repository_url" {
 output "app_url" {
   value = "https://${local.domain}"
 }
+
+output "github_actions_role_arn" {
+  value = aws_iam_role.github_actions_deploy.arn
+}
