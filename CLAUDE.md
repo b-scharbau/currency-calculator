@@ -26,7 +26,7 @@ and `test` do.
 Postgres is required. Two separate databases/roles are used — see `README.md` for the exact `CREATE
 DATABASE`/`CREATE USER` statements:
 
-- **Dev**: `currency_calculator`, role `currency` — configured in `src/main/resources/application.properties`
+- **Dev**: `currency_calculator`, role `currency_dev` — configured in `src/main/resources/application.properties`
   (credentials overridable via `DB_USERNAME`/`DB_PASSWORD` env vars).
 - **Test**: `currency_calculator_test`, role `currency_test` — configured in
   `src/test/resources/application.properties`, which overrides the main datasource config on the test

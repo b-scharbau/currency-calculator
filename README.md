@@ -27,9 +27,9 @@ The app expects a database named `currency_calculator`, reachable at
 
 ```sql
 CREATE DATABASE currency_calculator;
-CREATE USER currency WITH PASSWORD 'currency_dev';
-GRANT ALL PRIVILEGES ON DATABASE currency_calculator TO currency;
-ALTER DATABASE currency_calculator OWNER TO currency;
+CREATE USER currency_dev WITH PASSWORD 'currency_dev';
+GRANT ALL PRIVILEGES ON DATABASE currency_calculator TO currency_dev;
+ALTER DATABASE currency_calculator OWNER TO currency_dev;
 ```
 
 Connection settings can be overridden via the `DB_USERNAME` and `DB_PASSWORD` environment
