@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/b-scharbau/currency-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/b-scharbau/currency-calculator/actions/workflows/ci.yml)
 
+**Live**: [currency.bscharbau.com](https://currency.bscharbau.com)
+
 A small Spring Boot app for converting between currencies, using live rates from the
 [Frankfurter API](https://frankfurter.dev/). Built with Java 21 and Spring Boot 4.1.
 
