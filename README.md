@@ -167,3 +167,7 @@ CREATE USER currency_prod WITH PASSWORD '<value fetched above>';
 GRANT ALL PRIVILEGES ON DATABASE currency_calculator TO currency_prod;
 ALTER DATABASE currency_calculator OWNER TO currency_prod;
 ```
+
+## Author
+
+Built by [Benjamin Scharbau](https://bscharbau.com), a freelance full-stack engineer in Fukuoka, Japan.
