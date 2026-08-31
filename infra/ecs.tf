@@ -7,6 +7,11 @@ resource "aws_cloudwatch_log_group" "app" {
   retention_in_days = 30
 }
 
+# --- Task execution role -------------------------------------------------------------------------
+# Used by the ECS agent to pull the image and read the SSM SecureString secret when starting a
+# task. Distinct from the EC2 container-instance role below (which registers the box with the
+# cluster and ships container logs).
+
 resource "aws_iam_role" "execution" {
   name = "${local.app_name}-ecs-execution"
 
@@ -49,21 +54,120 @@ resource "aws_iam_role_policy" "execution_secrets" {
   })
 }
 
+# --- EC2 container instances -------------------------------------------------------------------
+# A single t3.micro registered with the cluster via an Auto Scaling Group. Cheaper than Fargate
+# for an always-on service this small: one on-demand t3.micro (~US$8/mo in ap-northeast-1, less
+# with a Savings Plan) vs. Fargate's 0.5 vCPU + 1GB running 24/7 (~US$18/mo).
+
+resource "aws_iam_role" "ecs_instance" {
+  name = "${local.app_name}-ecs-instance"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+# Lets the box register with the cluster, pull images, and ship container stdout/stderr to
+# CloudWatch Logs (the awslogs driver uses the instance role on EC2, not the execution role).
+resource "aws_iam_role_policy_attachment" "ecs_instance_ecs" {
+  role       = aws_iam_role.ecs_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+# SSM Session Manager access, so the instance can be reached for debugging without opening SSH
+# or attaching a key pair.
+resource "aws_iam_role_policy_attachment" "ecs_instance_ssm" {
+  role       = aws_iam_role.ecs_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ecs_instance" {
+  name = "${local.app_name}-ecs-instance"
+  role = aws_iam_role.ecs_instance.name
+}
+
+resource "aws_launch_template" "ecs" {
+  name_prefix   = "${local.app_name}-ecs-"
+  image_id      = data.aws_ssm_parameter.ecs_ami.value
+  instance_type = "t3.micro"
+
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.ecs_instance.arn
+  }
+
+  # Public subnet + public IP: the instance needs outbound access to ECR, CloudWatch Logs, SSM
+  # and the Frankfurter API, and there is no NAT gateway in this VPC.
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.ecs_instance.id]
+  }
+
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    echo "ECS_CLUSTER=${aws_ecs_cluster.app.name}" >> /etc/ecs/ecs.config
+  EOF
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = { Name = "${local.app_name}-ecs" }
+  }
+}
+
+resource "aws_autoscaling_group" "ecs" {
+  name                = "${local.app_name}-ecs"
+  vpc_zone_identifier = local.public_subnet_ids
+  min_size            = 1
+  max_size            = 1
+  desired_capacity    = 1
+  health_check_type   = "EC2"
+
+  launch_template {
+    id      = aws_launch_template.ecs.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${local.app_name}-ecs"
+    propagate_at_launch = true
+  }
+
+  # Replace the instance on launch-template changes (e.g. a newer ECS-optimized AMI) rather than
+  # leaving the running box on the old template.
+  instance_refresh {
+    strategy = "Rolling"
+  }
+}
+
+# --- Task definition + service --------------------------------------------------------------------
+
 resource "aws_ecs_task_definition" "app" {
   family                   = local.app_name
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "512"
-  memory                   = "1024"
-  execution_role_arn       = aws_iam_role.execution.arn
+  requires_compatibilities = ["EC2"]
+  # bridge networking (not awsvpc): the task shares the instance's ENI, so it reaches the
+  # internet via the instance's public IP and the ALB targets the instance on a dynamic host
+  # port. awsvpc on EC2 would give the task its own ENI with no public IP and no route out.
+  network_mode       = "bridge"
+  execution_role_arn = aws_iam_role.execution.arn
 
   container_definitions = jsonencode([
     {
       name      = local.app_name
       image     = "${aws_ecr_repository.app.repository_url}:latest"
       essential = true
+      # Soft limit only — one task owns the box, so let it use whatever RAM is free rather than
+      # risking an OOM kill at a hard cap on a 1GB instance.
+      memoryReservation = 512
       portMappings = [
-        { containerPort = 8080, protocol = "tcp" }
+        # hostPort 0 => ECS assigns an ephemeral host port (32768-65535); the ALB target group
+        # is registered with that port automatically.
+        { containerPort = 8080, hostPort = 0, protocol = "tcp" }
       ]
       environment = [
         { name = "DB_URL", value = "jdbc:postgresql://${data.aws_db_instance.shared.endpoint}/currency_calculator" },
@@ -89,13 +193,11 @@ resource "aws_ecs_service" "app" {
   cluster         = aws_ecs_cluster.app.id
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = 1
-  launch_type     = "FARGATE"
+  launch_type     = "EC2"
 
-  network_configuration {
-    subnets          = local.public_subnet_ids
-    security_groups  = [aws_security_group.ecs_task.id]
-    assign_public_ip = true
-  }
+  # Free up the single instance's host port before starting the replacement task on a deploy.
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 100
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
@@ -103,5 +205,5 @@ resource "aws_ecs_service" "app" {
     container_port   = 8080
   }
 
-  depends_on = [aws_lb_listener.https]
+  depends_on = [aws_lb_listener.https, aws_autoscaling_group.ecs]
 }

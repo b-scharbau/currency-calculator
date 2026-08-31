@@ -12,8 +12,8 @@ data "aws_subnets" "main" {
 # The default VPC has two subnets per AZ, but they are NOT equivalent: three are associated with
 # a "bscharbau-com-private" route table with no internet route at all, and the other three fall
 # back to the VPC's main route table ("bscharbau-com-public"), which does have the 0.0.0.0/0 -> IGW
-# route. Both the internet-facing ALB and the ECS task (which needs outbound access to ECR,
-# CloudWatch Logs, SSM, and the Frankfurter API) must land only in the public ones.
+# route. Both the internet-facing ALB and the ECS container instance (which needs outbound access
+# to ECR, CloudWatch Logs, SSM, and the Frankfurter API) must land only in the public ones.
 data "aws_route_table" "private" {
   filter {
     name   = "tag:Name"
@@ -40,6 +40,13 @@ data "aws_security_group" "rds" {
 }
 
 data "aws_caller_identity" "current" {}
+
+# The current ECS-optimized Amazon Linux 2023 AMI (x86_64), published by AWS as a public SSM
+# parameter. The image built by CI runs on amd64 (GitHub's ubuntu-latest runners), so the
+# container instances must be x86_64 to match — hence t3.micro rather than a Graviton type.
+data "aws_ssm_parameter" "ecs_ami" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id"
+}
 
 data "aws_db_instance" "shared" {
   db_instance_identifier = "bscharbau-com"
