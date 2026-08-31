@@ -7,7 +7,10 @@ resource "aws_lb" "app" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = local.app_name
+  # name_prefix (not a fixed name) + create_before_destroy so a future target_type / attribute
+  # change can roll the group without the "delete before the listener lets go" deadlock: the new
+  # group is created and the listener repointed before the old one is removed.
+  name_prefix = "cc-"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.main.id
@@ -20,6 +23,10 @@ resource "aws_lb_target_group" "app" {
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 3
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
