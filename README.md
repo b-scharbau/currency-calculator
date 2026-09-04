@@ -113,10 +113,13 @@ Interactive API docs (Swagger UI) are at `/swagger-ui.html`; the raw OpenAPI spe
 
 ## Deployment
 
-The app runs in production on AWS (ECS Fargate behind an ALB, at `https://currency.bscharbau.com`),
-provisioned via Terraform in `infra/` (local state, not committed — see `infra/*.tf` for the full
-resource layout: ECR, ACM, ALB, ECS, IAM, the SSM-stored DB password, and the additive
-Route53/security-group records into the existing shared `bscharbau.com` zone and RDS instance).
+The app runs in production on AWS (ECS on EC2 — a single `t3.micro` container instance in a
+one-node Auto Scaling Group — behind an ALB, at `https://currency.bscharbau.com`), provisioned via
+Terraform in `infra/` (local state, not committed — see `infra/*.tf` for the full resource layout:
+ECR, ACM, ALB, the ECS cluster/launch-template/ASG, IAM, the SSM-stored DB password, and the
+additive Route53/security-group records into the existing shared `bscharbau.com` zone and RDS
+instance). The task uses `bridge` networking with dynamic host-port mapping, so the ALB target
+group targets the instance rather than a task IP.
 
 Initial infrastructure setup (`terraform apply` + the one-off database bootstrap below) has already
 been done.
@@ -126,6 +129,10 @@ image to ECR and rolls the ECS service on every push to `master`, once the `back
 test jobs pass. It authenticates to AWS via OIDC (`infra/github_oidc.tf`) — a role trusted only for
 this exact repo on `refs/heads/master`, scoped to just pushing this one ECR repo and updating this
 one ECS service. No AWS credentials are stored in GitHub.
+
+Because there is only one container instance, a deploy stops the old task before starting the new
+one (`deployment_minimum_healthy_percent = 0`), so expect a few seconds of downtime while the new
+task boots and passes its health check.
 
 To deploy manually (e.g. testing an image before pushing to master):
 

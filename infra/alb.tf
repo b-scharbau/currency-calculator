@@ -1,17 +1,16 @@
-resource "aws_lb" "app" {
-  name               = local.app_name
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = local.public_subnet_ids
-}
+# The ALB and its listeners are shared (~/Projects/bscharbau-infra). This file
+# keeps currency-calculator's own target group and the host-header listener rule
+# that forwards currency.bscharbau.com to it. The shared HTTPS listener has a
+# plain 404 default action; every project registers a rule like this one.
 
 resource "aws_lb_target_group" "app" {
-  name        = local.app_name
+  # name_prefix (not a fixed name) + create_before_destroy so a future target_type / attribute
+  # change can roll the group without the "delete before the listener lets go" deadlock.
+  name_prefix = "cc-"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.main.id
-  target_type = "ip"
+  target_type = "instance"
 
   health_check {
     path                = "/"
@@ -21,33 +20,24 @@ resource "aws_lb_target_group" "app" {
     healthy_threshold   = 2
     unhealthy_threshold = 3
   }
-}
 
-resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.app.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = aws_acm_certificate_validation.app.certificate_arn
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
-resource "aws_lb_listener" "http_redirect" {
-  load_balancer_arn = aws_lb.app.arn
-  port              = 80
-  protocol          = "HTTP"
+resource "aws_lb_listener_rule" "currency" {
+  listener_arn = data.aws_lb_listener.https.arn
+  priority     = 100
 
-  default_action {
-    type = "redirect"
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
 
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+  condition {
+    host_header {
+      values = [local.domain]
     }
   }
 }
