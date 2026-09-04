@@ -1,5 +1,5 @@
 output "alb_dns_name" {
-  value = aws_lb.app.dns_name
+  value = data.aws_lb.shared.dns_name
 }
 
 output "ecr_repository_url" {

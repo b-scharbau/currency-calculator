@@ -1,20 +1,11 @@
-# Lets GitHub Actions assume an AWS role without any long-lived credentials stored in the repo.
-data "tls_certificate" "github" {
-  url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
-}
-
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
-}
-
+# The GitHub OIDC provider is account-global and shared (~/Projects/bscharbau-infra).
+# This file keeps only currency-calculator's own deploy role, which trusts that
+# provider scoped to this exact repo + branch.
+#
 # Trust is scoped to this exact repo AND branch, so only a push to master on
 # b-scharbau/currency-calculator can assume this role — not PRs, not other branches, not forks.
-#
-# The sub claim includes GitHub's immutable owner/repo IDs (e.g. "b-scharbau@89822449"), not just
-# the names — a security feature that stops a repo/org rename from silently hijacking this trust
-# relationship. Confirmed via a one-off debug step that decoded the actual token GitHub issued.
+# The sub claim includes GitHub's immutable owner/repo IDs, not just the names — a rename can't
+# silently hijack the trust.
 resource "aws_iam_role" "github_actions_deploy" {
   name = "${local.app_name}-github-actions-deploy"
 
@@ -22,7 +13,7 @@ resource "aws_iam_role" "github_actions_deploy" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = {
@@ -35,8 +26,8 @@ resource "aws_iam_role" "github_actions_deploy" {
 }
 
 # Scoped to exactly what a deploy needs: push images to this one ECR repo, and roll this one ECS
-# service. No task-definition or IAM permissions, since the service already points at the mutable
-# ":latest" tag — a deploy is just a new image push + force-new-deployment.
+# service. No task-definition or IAM permissions — the service points at the mutable ":latest"
+# tag, so a deploy is just a new image push + force-new-deployment.
 resource "aws_iam_role_policy" "github_actions_deploy" {
   name = "${local.app_name}-github-actions-deploy"
   role = aws_iam_role.github_actions_deploy.id
